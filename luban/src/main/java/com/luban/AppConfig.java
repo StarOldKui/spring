@@ -3,7 +3,7 @@ package com.luban;
 
 import org.springframework.context.annotation.ComponentScan;
 
-@ComponentScan("com.luban")
+//@ComponentScan("com.luban")
 public class AppConfig {
 
 

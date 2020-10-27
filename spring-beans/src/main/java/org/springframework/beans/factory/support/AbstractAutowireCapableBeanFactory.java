@@ -524,6 +524,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		try {
 			// 创建bean
+			// 生成半成品（row）对象，执行构造方法，但无属性注入
 			Object beanInstance = doCreateBean(beanName, mbdToUse, args);
 			if (logger.isTraceEnabled()) {
 				logger.trace("Finished creating instance of bean '" + beanName + "'");
@@ -568,7 +569,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// 2、实例化
 		if (instanceWrapper == null) {
-			// 创建bean实例
+			// 完成了对象创建
 			instanceWrapper = createBeanInstance(beanName, mbd, args);
 		}
 
@@ -597,17 +598,28 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// Eagerly cache singletons to be able to resolve circular references
 		// even when triggered by lifecycle interfaces like BeanFactoryAware.
-		// 如果当前创建的是单例bean，并且允许循环依赖，并且还在创建过程中，那么则提早暴露
+		// 如果当前创建的是单例bean，并且允许循环依赖，并且还在创建过程中，那么则提早暴露，为的是能在缓存中拿到避免无限循环
 		boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&
-				isSingletonCurrentlyInCreation(beanName));
+				isSingletonCurrentlyInCreation(beanName)); // 第三条件在第二次getSingleton方法中的beforeSingletonCreation方法里已经放进去了，绝对成立
 		if (earlySingletonExposure) {
 			if (logger.isTraceEnabled()) {
 				logger.trace("Eagerly caching bean '" + beanName +
 						"' to allow for resolving potential circular references");
 			}
-			// 此时的bean还没有完成属性注入，是一个非常简单的对象
+			// 此时的bean还没有完成属性注入，是一个非常简单的半成品对象
 			// 构造一个对象工厂添加到singletonFactories中
 			// 第四次调用后置处理器
+			// 饥渴创建，解决循环依赖的问题
+			/*
+			顾名思义添加一个单例工厂；其实这里要非常注意，因为大部分资料里面在说到spring循环依赖的时候都说是提前暴露一个半成品bean；
+			笔者觉得这个不严格；甚至算错误了，所谓的提前暴露就是这里的add，但是我们看到源码并不是add一个bean的，而是add一个工厂对象——
+			singletonFactory；两种说法有什么区别呢？区别可大了，简直天壤之别；我们慢慢分析；这里bean和工厂有什么区别呢？在当前的语境下面
+			bean就是x对象经历完spring生命周期之后；所谓的半成品bean，可能还没有经历完整的生命周期；而工厂对象呢？如果你去ObjectFactory的
+			源码或者直接顾名思义他是一个能够产生对象的工厂，或者叫能够产生bean的工厂；换句话说bean是一个产品，而工厂是产生这些产品的公司；
+			如果还不能理解换成天上人间可能好理解——冰火和全套的区别，冰火是全套里面的一个项目，除了冰火还有其他项目；那么spring在这里add的是
+			singletonFactory这个工厂对象（这个工厂可以产生半成品对象），而不是一个半成品对象；相当于这里add的是全套，而不是冰火；
+			将来拿出来的时候是得到工厂，继而通过工厂得到半成品bean；将来拿出来的是全套，你可以在全套里面肆意选择一个项目
+			*/
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));  // AService
 //			addEarlySingleton(beanName, bean);
 		}
@@ -616,10 +628,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// 对象已经暴露出去了
 		Object exposedObject = bean;
 		try {
+			// 大名鼎鼎的方法，完成自动注入
 			// 3、填充属性 @Autowired
 			populateBean(beanName, mbd, instanceWrapper);
 
-			// 4、 初始化 和 BeanPostProcessor
+			// 4、 初始化 和 BeanPostProcessor，主要执行各种生命周期回调方法以及aop等
 			exposedObject = initializeBean(beanName, exposedObject, mbd);
 		}
 		catch (Throwable ex) {

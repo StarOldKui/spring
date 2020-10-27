@@ -97,6 +97,7 @@ public class AnnotatedBeanDefinitionReader {
 		// 3.CommonAnnotationBeanPostProcessor
 		// 4.EventListenerMethodProcessor
 		// 5.DefaultEventListenerFactory
+		// 开天辟地五BD
 		AnnotationConfigUtils.registerAnnotationConfigProcessors(this.registry);
 	}
 
@@ -262,7 +263,7 @@ public class AnnotatedBeanDefinitionReader {
 	 * beanClass表示bean的类型
 	 * name表示bean的名字
 	 * qualifiers表示资格限定器，如果某个类上没有写@Lazy注解，但是在调用registerBean方法时传递了Lazy.class，那么则达到了一样的效果
-	 * supplier表示实例提供器，如果指定了supplier，那么bean的实例是有这个supplier生成的
+	 * supplier表示实例提供器，如果指定了supplier，那么bean的实例是由这个supplier生成的
 	 * customizers表示BeanDefinition自定义器，可以通过customizers对BeanDefinition进行自定义修改
 	 */
 	private <T> void doRegisterBean(Class<T> beanClass, @Nullable String name,

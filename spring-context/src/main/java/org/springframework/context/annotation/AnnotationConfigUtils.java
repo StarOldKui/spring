@@ -164,6 +164,7 @@ public abstract class AnnotationConfigUtils {
 		Set<BeanDefinitionHolder> beanDefs = new LinkedHashSet<>(8);
 
 		// 注册ConfigurationClassPostProcessor类型的BeanDefinition
+		// 从beanDefinitionMap中判断有无"org.springframework.context.annotation.internalConfigurationAnnotationProcessor"的key
 		if (!registry.containsBeanDefinition(CONFIGURATION_ANNOTATION_PROCESSOR_BEAN_NAME)) {
 			RootBeanDefinition def = new RootBeanDefinition(ConfigurationClassPostProcessor.class);
 			def.setSource(source);
@@ -171,9 +172,10 @@ public abstract class AnnotationConfigUtils {
 		}
 
 		// 注册AutowiredAnnotationBeanPostProcessor类型的BeanDefinition
+		// "org.springframework.context.annotation.internalAutowiredAnnotationProcessor"
 		if (!registry.containsBeanDefinition(AUTOWIRED_ANNOTATION_PROCESSOR_BEAN_NAME)) {
 			RootBeanDefinition def = new RootBeanDefinition(AutowiredAnnotationBeanPostProcessor.class);
-			def.setSource(source);
+			def.setSource(source); // 第一次为null
 			beanDefs.add(registerPostProcessor(registry, def, AUTOWIRED_ANNOTATION_PROCESSOR_BEAN_NAME));
 		}
 

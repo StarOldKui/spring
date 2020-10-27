@@ -149,12 +149,30 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 */
 	protected void addSingletonFactory(String beanName, ObjectFactory<?> singletonFactory) {
 		Assert.notNull(singletonFactory, "Singleton factory must not be null");
+		// singleObjects 一级缓存
 		synchronized (this.singletonObjects) {
+			// 如果单例池中不存在才会add
+			// 因为这里主要为了循环依赖服务的代码
+			// 如果bean存在单例池的话其实已经是一个完整的bean了
+			// 一个完整的bean自然已经完成了属性注入，循环依赖已经依赖上了，如果已是完整的bean则无需关心进if了
 			if (!this.singletonObjects.containsKey(beanName)) {
+				// 把工厂对象put到singletonFactory二级缓存中
 				this.singletonFactories.put(beanName, singletonFactory);
+				// 从三级缓存中remove掉当前bean
+				// 三个缓存中存的都是同一个对象，spring的做法是三个不能同时存，加1存了，则2和3就要remove，所以既然现在put到了二级缓存，
+				// 一级缓存中也没有，三级缓存也要remove
 				this.earlySingletonObjects.remove(beanName);
 				this.registeredSingletons.add(beanName);
 			}
+			/*
+			* 一级缓存：可能存在很多bean，比如spring各种内置bean，比如你项目里面其他的已经创建好的bean，但是在X的创建过程中，
+			* 一级缓存中绝对是没有xbean的，也没用y；因为spring创建bean默认的顺序是根据字母顺序的
+			*
+			* 二级缓存：里面现在仅仅存在一个工厂对象，对应的key为x的beanName，并且这个bean工厂对象的getObect方法能返回现在的这个时候的x
+			* （半成品的xbean） put完成之后，代码接着往下执行
+			*
+			* 三级缓存：姑且认为里面什么都没有吧
+			* */
 		}
 	}
 
@@ -183,18 +201,26 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 */
 	@Nullable
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
+		// 从一级缓存中直接拿
 		Object singletonObject = this.singletonObjects.get(beanName);
-
+		/*
+		* 如果此时x注入y，创建y，y注入x，获取x时此时x不在容器，第一条件成立
+		* 第二条件此时也成立，因为重载方法里的beforeSingletonCreation(beanName)已经加入进了singletonsCurrentlyInCreation的set里
+		* */
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
 			synchronized (this.singletonObjects) {
 				// 没有earlySingletonObjects会怎么样？
+				// 先从三级缓存中拿，但是addSingletonFactory方法已经放入二级缓存中并从三级缓存中remove了
 				singletonObject = this.earlySingletonObjects.get(beanName);
 
 				if (singletonObject == null && allowEarlyReference) {
 					// 为什么需要singletonFactories？
+					// 再从二级缓存中取出工厂，
 					ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 					if (singletonFactory != null) {
+						// 产生半成品的xbean
 						singletonObject = singletonFactory.getObject();  // 执行lambda AOp
+						// 并放入三级缓存中
 						this.earlySingletonObjects.put(beanName, singletonObject);
 						this.singletonFactories.remove(beanName);
 					}
@@ -218,8 +244,11 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 			Object singletonObject = this.singletonObjects.get(beanName);
 
 			// 如果不存在实例，则创建单例bean实例
+			// 在spring 初始化bean的时候这里肯定为空，故而成立
 			if (singletonObject == null) {
 				// 当前单例正在销毁中..
+				// 判断当前实例化的bean是否正在销毁的集合里面；spring不管销毁还是创建一个bean的过程都比较繁琐，
+				// 都会先把他们放到一个集合当中标识正在创建或者销毁
 				if (this.singletonsCurrentlyInDestruction) {
 					throw new BeanCreationNotAllowedException(beanName,
 							"Singleton bean creation not allowed while singletons of this factory are in destruction " +
@@ -238,6 +267,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				try {
 					// singletonFactory是外面传进来的lambda表达式,执行lambda表达式
 					// 创建单例bean
+					// 调用传进去的createBean方法
 					singletonObject = singletonFactory.getObject();
 					newSingleton = true;
 				}
