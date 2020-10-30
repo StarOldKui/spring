@@ -990,6 +990,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 			}
 			this.beanDefinitionMap.put(beanName, beanDefinition);
 		}
+		// BeanDefinition不存在
 		else {
 			if (hasBeanCreationStarted()) {
 				// Cannot modify startup-time collection elements anymore (for stable iteration)
@@ -1002,9 +1003,15 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 					removeManualSingletonName(beanName);
 				}
 			}
+			// 创建阶段并未开始
 			else {
+				// 注册BD核心代码
+				// beanDefinitionMap是Map<String, BeanDefinition>，
+				// 这里就是把beanName作为key，ScopedProxyMode作为value，推到map里面
 				// Still in startup registration phase
+				// 一堆复杂的逻辑判断，其实归根结底就是个put
 				this.beanDefinitionMap.put(beanName, beanDefinition);
+				// beanDefinitionNames就是一个List<String>,这里就是把beanName放到List中去
 				this.beanDefinitionNames.add(beanName);
 				removeManualSingletonName(beanName);
 			}

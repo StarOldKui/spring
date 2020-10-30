@@ -53,8 +53,10 @@ import org.springframework.util.Assert;
  */
 public class AnnotationConfigApplicationContext extends GenericApplicationContext implements AnnotationConfigRegistry {
 
+	// 注解bean定义读取器，主要作用用来读取被注解了的bean
 	private final AnnotatedBeanDefinitionReader reader;
 
+	// 扫描器，仅仅在外部手动调用.scan等方法才有用，常规方式是不会用到scanner对象的
 	private final ClassPathBeanDefinitionScanner scanner;
 
 
@@ -65,8 +67,9 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	public AnnotationConfigApplicationContext() {
 		// 再执行这个构造方法之前，会先执行父类的构造方法，会初始化一个beanFactory = new DefaultListableBeanFactory()
 
-		// 生成5个原始的beanDefinition
-		// 后面会生成对应的bean，然后做特定的事情
+		// 处理打了注解的类
+		// 注册内置BeanPostProcesser
+		// 注册相关的5个原始的BeanDefinition
 		this.reader = new AnnotatedBeanDefinitionReader(this);
 		// AnnotatedBeanDefinitionReader负责将某个类注册为beanDefinition
 		// reader.register(AppConfig.class);
@@ -97,8 +100,11 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 		// 而我们可以另外一个构造方法AnnotationConfigApplicationContext(String... basePackages),这个构造方法里使用的是scanner去扫描包路径得到BeanDefinition
 		this();
 		// 把AppConfig类注册为一个AnnotatedGenericBeanDefinition到reader中
+		// 与this.reader = new AnnotatedBeanDefinitionReader(this)一样同样会进到最终会调用DefaultListableBeanFactory中的
+		// registerBeanDefinition方法去Bean，只不过人家是开天辟地的
 		register(componentClasses);
 
+		// 上方都和注册逻辑有关
 		// 在Spring启动到这里时，Spring中已经存在了一些BeanDefinition了，注意，不是Bean
 		// 刷新我们可以理解为，去解析这个BeanDefinition，因为这里的每个BeanDefinition都代表不同的意义，所做的事情也不同
 		refresh();
@@ -115,7 +121,6 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 		scan(basePackages);
 		refresh();
 	}
-
 
 	/**
 	 * Propagate the given custom {@code Environment} to the underlying
@@ -156,7 +161,6 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 		this.reader.setScopeMetadataResolver(scopeMetadataResolver);
 		this.scanner.setScopeMetadataResolver(scopeMetadataResolver);
 	}
-
 
 	//---------------------------------------------------------------------
 	// Implementation of AnnotationConfigRegistry

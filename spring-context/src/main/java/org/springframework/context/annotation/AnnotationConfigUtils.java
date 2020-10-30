@@ -134,6 +134,9 @@ public abstract class AnnotationConfigUtils {
 	 * @param registry the registry to operate on
 	 */
 	public static void registerAnnotationConfigProcessors(BeanDefinitionRegistry registry) {
+		// 门面模式(Facade): 再封装一层，要求一个子系统的外部与其内部的通信必须通过一个统一的对象进行。
+		// 门面模式提供一个高层次的接口，使得子系统更易于使用
+		// 这个方法的返回值Set，但是上游方法并没有去接收这个返回值，所以这 个方法的返回值也不是很重要了，当然方法内部给这个返回值赋值也不重要了。
 		registerAnnotationConfigProcessors(registry, null);
 	}
 
@@ -149,9 +152,9 @@ public abstract class AnnotationConfigUtils {
 			BeanDefinitionRegistry registry, @Nullable Object source) {
 
 		DefaultListableBeanFactory beanFactory = unwrapDefaultListableBeanFactory(registry);
+
+		// 方法的核心就是注册Spring内置的多个Bean
 		if (beanFactory != null) {
-			// 设置beanFactory的OrderComparator，为AnnotationAwareOrderComparator
-			// beanFactory利用OrderComparator对bean进行排序，通过Ordered接口，Ordered注解，Priority注解指定排序
 			if (!(beanFactory.getDependencyComparator() instanceof AnnotationAwareOrderComparator)) {
 				beanFactory.setDependencyComparator(AnnotationAwareOrderComparator.INSTANCE);
 			}
@@ -165,9 +168,16 @@ public abstract class AnnotationConfigUtils {
 
 		// 注册ConfigurationClassPostProcessor类型的BeanDefinition
 		// 从beanDefinitionMap中判断有无"org.springframework.context.annotation.internalConfigurationAnnotationProcessor"的key
+		// 设置beanFactory的OrderComparator，为AnnotationAwareOrderComparator
+		// beanFactory利用OrderComparator对bean进行排序，通过Ordered接口，Ordered注解，Priority注解指定排序
+		// 1. 判断容器中是否已经存在了ConfigurationClassPostProcessor的Bean
 		if (!registry.containsBeanDefinition(CONFIGURATION_ANNOTATION_PROCESSOR_BEAN_NAME)) {
+			// 2. 如果不存在（当然这里肯定是不存在的），就通过RootBeanDefinition的构造方法获得
+			// ConfigurationClassPostProcessor的BeanDefinition，RootBeanDefinition是BeanDefinition的子类
 			RootBeanDefinition def = new RootBeanDefinition(ConfigurationClassPostProcessor.class);
 			def.setSource(source);
+			// 3. 执行registerPostProcessor方法，registerPostProcessor方法内部就是注册Bean，当然这里注册
+			// 其他Bean也是一样的流程
 			beanDefs.add(registerPostProcessor(registry, def, CONFIGURATION_ANNOTATION_PROCESSOR_BEAN_NAME));
 		}
 
@@ -223,8 +233,13 @@ public abstract class AnnotationConfigUtils {
 	private static BeanDefinitionHolder registerPostProcessor(
 			BeanDefinitionRegistry registry, RootBeanDefinition definition, String beanName) {
 
+		// 这方法为BeanDefinition设置了一个Role，ROLE_INFRASTRUCTURE代表这是spring内部的，并非用户定
+		// 义的
 		definition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+
+		// registry实现类是DefaultListableBeanFactory
 		registry.registerBeanDefinition(beanName, definition);
+
 		return new BeanDefinitionHolder(definition, beanName);
 	}
 

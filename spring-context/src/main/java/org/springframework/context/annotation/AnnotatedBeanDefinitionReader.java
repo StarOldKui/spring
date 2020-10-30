@@ -98,6 +98,8 @@ public class AnnotatedBeanDefinitionReader {
 		// 4.EventListenerMethodProcessor
 		// 5.DefaultEventListenerFactory
 		// 开天辟地五BD
+		// DefaultListableBeanFactory就是我们所说的容器了，里面放着beanDefinitionMap， beanDefinitionNames
+		// 这里仅仅是注册，可以简单的理解为把一些原料放入工厂，工厂还没有真正的去生产
 		AnnotationConfigUtils.registerAnnotationConfigProcessors(this.registry);
 	}
 
@@ -271,7 +273,10 @@ public class AnnotatedBeanDefinitionReader {
 			@Nullable BeanDefinitionCustomizer[] customizers) {
 
 		// 直接生成一个AnnotatedGenericBeanDefinition
+		// AnnotatedGenericBeanDefinition可以理解为一种数据结构，是用来描述Bean的，这里的作用就是把传入的标记了注解 的类
+		// 转为AnnotatedGenericBeanDefinition数据结构，里面有一个getMetadata方法，可以拿到类上的注解
 		AnnotatedGenericBeanDefinition abd = new AnnotatedGenericBeanDefinition(beanClass);
+
 		// 判断当前abd是否被标注了@Conditional注解，并判断是否符合所指定的条件，如果不符合，则跳过，不进行注册
 		if (this.conditionEvaluator.shouldSkip(abd.getMetadata())) {
 			return;
@@ -279,25 +284,36 @@ public class AnnotatedBeanDefinitionReader {
 
 		// 设置supplier、scope属性，以及得到beanName
 		abd.setInstanceSupplier(supplier);
+		// 解析bean的作用域，如果没有设置的话，默认为单例
 		ScopeMetadata scopeMetadata = this.scopeMetadataResolver.resolveScopeMetadata(abd);
 		abd.setScope(scopeMetadata.getScopeName());
+		// 获得beanName
 		String beanName = (name != null ? name : this.beanNameGenerator.generateBeanName(abd, this.registry));
 
-		// 获取Lazy、Primary、DependsOn、Role、Description注解信息并设置给abd
+		// 解析通用注解，填充到AnnotatedGenericBeanDefinition，解析的注解为Lazy，Primary，DependsOn，Role，Descri
+		//ption
 		AnnotationConfigUtils.processCommonDefinitionAnnotations(abd);
+
+		// 限定符处理，不是特指@Qualifier注解，也有可能是Primary,或者是Lazy，或者是其他（理论上是任何注解，这里没有判 断注解的有效性）
+		// qualifiers永远都是空的，包括上面的name和instanceSupplier都是同样的道理
+		// 但是spring提供了其他方式去注册bean，就可能会传入了
 		if (qualifiers != null) {
+			// 可以传入qualifier数组，所以需要循环处理
 			for (Class<? extends Annotation> qualifier : qualifiers) {
+				// Primary注解优先
 				if (Primary.class == qualifier) {
 					abd.setPrimary(true);
 				}
 				else if (Lazy.class == qualifier) {
 					abd.setLazyInit(true);
 				}
+				// 其他，AnnotatedGenericBeanDefinition有个Map<String,AutowireCandidateQualifier>属性，直接push进去
 				else {
 					abd.addQualifier(new AutowireCandidateQualifier(qualifier));
 				}
 			}
 		}
+
 		// 使用自定义器修改BeanDefinition
 		if (customizers != null) {
 			for (BeanDefinitionCustomizer customizer : customizers) {
@@ -305,15 +321,15 @@ public class AnnotatedBeanDefinitionReader {
 			}
 		}
 
-		// BeanDefinition中是没有beanName的，BeanDefinitionHolder中持有了BeanDefinition,beanName,alias
+		// BeanDefinition中是没有beanName的，BeanDefinitionHolder中持有了BeanDefinition, beanName, alias
 		BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(abd, beanName);
 		// 解析Scope中的ProxyMode属性，默认为no，不生成代理对象
 		definitionHolder = AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
-
 		// 注册到registry中
+		// 注册，最终会调用DefaultListableBeanFactory中的registerBeanDefinition方法去注册，
+		// DefaultListableBeanFactory维护着一系列信息，比如beanDefinitionNames，beanDefinitionMap
 		BeanDefinitionReaderUtils.registerBeanDefinition(definitionHolder, this.registry);
 	}
-
 
 	/**
 	 * Get the Environment from the given registry if possible, otherwise return a new
