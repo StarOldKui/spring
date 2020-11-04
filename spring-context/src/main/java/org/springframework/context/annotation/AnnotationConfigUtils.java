@@ -136,7 +136,7 @@ public abstract class AnnotationConfigUtils {
 	public static void registerAnnotationConfigProcessors(BeanDefinitionRegistry registry) {
 		// 门面模式(Facade): 再封装一层，要求一个子系统的外部与其内部的通信必须通过一个统一的对象进行。
 		// 门面模式提供一个高层次的接口，使得子系统更易于使用
-		// 这个方法的返回值Set，但是上游方法并没有去接收这个返回值，所以这 个方法的返回值也不是很重要了，当然方法内部给这个返回值赋值也不重要了。
+		// 这个方法的返回值Set，但是上游方法并没有去接收这个返回值，所以这个方法的返回值也不是很重要了，当然方法内部给这个返回值赋值也不重要了。
 		registerAnnotationConfigProcessors(registry, null);
 	}
 
@@ -174,6 +174,7 @@ public abstract class AnnotationConfigUtils {
 		if (!registry.containsBeanDefinition(CONFIGURATION_ANNOTATION_PROCESSOR_BEAN_NAME)) {
 			// 2. 如果不存在（当然这里肯定是不存在的），就通过RootBeanDefinition的构造方法获得
 			// ConfigurationClassPostProcessor的BeanDefinition，RootBeanDefinition是BeanDefinition的子类
+			// 其实就是setBeanClass罢了，没其他任何操作
 			RootBeanDefinition def = new RootBeanDefinition(ConfigurationClassPostProcessor.class);
 			def.setSource(source);
 			// 3. 执行registerPostProcessor方法，registerPostProcessor方法内部就是注册Bean，当然这里注册

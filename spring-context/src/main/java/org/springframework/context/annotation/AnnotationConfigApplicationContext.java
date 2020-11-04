@@ -74,6 +74,8 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 		// AnnotatedBeanDefinitionReader负责将某个类注册为beanDefinition
 		// reader.register(AppConfig.class);
 
+		// 鸡肋，内部有实例化同样的扫描器，在ComponentScanAnnotationParser类的
+		// public Set<BeanDefinitionHolder> parse(AnnotationAttributes componentScan, final String declaringClass)中
 		this.scanner = new ClassPathBeanDefinitionScanner(this);
 	}
 
@@ -107,6 +109,7 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 		// 上方都和注册逻辑有关
 		// 在Spring启动到这里时，Spring中已经存在了一些BeanDefinition了，注意，不是Bean
 		// 刷新我们可以理解为，去解析这个BeanDefinition，因为这里的每个BeanDefinition都代表不同的意义，所做的事情也不同
+		// Spring还没有进行扫描，只是实例化了一个工厂，注册了一些内置的Bean和我们传进去的配置类，真正的大头是这个方法
 		refresh();
 	}
 
