@@ -887,7 +887,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 			// 对beanDefinition进行合并，基于合并后的BeanDefinition去创建bean
 			RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
 
-			// 非抽象，单例，非懒加载
+			// 非抽象，单例，非懒加载（饿汉）
 			if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
 
 				// FactoryBean

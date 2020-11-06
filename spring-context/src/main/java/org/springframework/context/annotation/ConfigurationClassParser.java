@@ -584,6 +584,15 @@ class ConfigurationClassParser {
 		}
 	}
 
+	/**
+	 *
+	 *
+	 *
+	 * @param configClass
+	 * @param currentSourceClass
+	 * @param importCandidates
+	 * @param checkForCircularImports
+	 */
 	private void processImports(ConfigurationClass configClass, SourceClass currentSourceClass,
 			Collection<SourceClass> importCandidates, boolean checkForCircularImports) {
 
@@ -628,6 +637,12 @@ class ConfigurationClassParser {
 						// process it as an @Configuration class
 						this.importStack.registerImport(
 								currentSourceClass.getMetadata(), candidate.getMetadata().getClassName());
+
+						/*
+						这个方法是不是很熟悉，没错，processImports这个方法就是在processConfigurationClass方法中被调用的
+						processImports又主动调用processConfigurationClass方法，是一个递归调用，因为Import的普通类，也有可能被加
+						了Import注解，@ComponentScan注解 或者其他注解，所以普通类需要再次被解析
+						*/
 						processConfigurationClass(candidate.asConfigClass(configClass));
 					}
 				}

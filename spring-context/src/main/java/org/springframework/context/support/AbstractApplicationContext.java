@@ -385,6 +385,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		Assert.notNull(event, "Event must not be null");
 
 		// Decorate event as an ApplicationEvent if necessary
+		// 1.如有必要，将事件装饰为ApplicationEvent
 		ApplicationEvent applicationEvent;
 		if (event instanceof ApplicationEvent) {
 			applicationEvent = (ApplicationEvent) event;
@@ -401,10 +402,12 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			this.earlyApplicationEvents.add(applicationEvent);
 		}
 		else {
+			// 2.使用事件广播器广播事件到相应的监听器
 			getApplicationEventMulticaster().multicastEvent(applicationEvent, eventType);
 		}
 
 		// Publish event via parent context as well...
+		// 3.同样的，通过parent发布事件
 		if (this.parent != null) {
 			if (this.parent instanceof AbstractApplicationContext) {
 				((AbstractApplicationContext) this.parent).publishEvent(event, eventType);
@@ -551,29 +554,48 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				invokeBeanFactoryPostProcessors(beanFactory);
 
 				// Register bean processors that intercept bean creation.
-				// 注册可以拦截bean的创建的BeanPostProcessor，
+				// 注册可以拦截bean的创建的BeanPostProcessor
+				/*
+				实例化和注册beanFactory中扩展了BeanPostProcessor的bean。
+				例如：
+				AutowiredAnnotationBeanPostProcessor(处理被@Autowired注解修饰的bean并注入)
+				RequiredAnnotationBeanPostProcessor(处理被@Required注解修饰的方法)
+				CommonAnnotationBeanPostProcessor(处理@PreDestroy、@PostConstruct、@Resource等多个注解的作用)
+				*/
 				registerBeanPostProcessors(beanFactory);
 
 				// Initialize message source for this context.
 				// 初始化MessageSource，如果配置了一个名字叫做“messageSource”的BeanDefinition
 				// 就会把这个Bean创建出来，并赋值给ApplicationContext的messageSource属性
 				// 这样ApplicationContext就可以使用国际化的功能了
+				// 没什么学习价值
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
 				// 设置ApplicationContext的applicationEventMulticaster
+				// 创建事件多播器
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
 				// 执行子类的onRefresh方法
+				// 模板方法，在容器刷新的时候可以自定义逻辑，不同的Spring容器做不同的事情
 				onRefresh();
 
 				// Check for listener beans and register them.
 				// 注册Listener
+				// 注册监听器，广播early application events
 				registerListeners();
 
+				// !!!
 				// Instantiate all remaining (non-lazy-init) singletons.
 				// 完成beanFactory的初始化（实例化非懒加载的单例bean）
+				/*
+				实例化所有剩余的（非懒加载）单例
+				比如invokeBeanFactoryPostProcessors方法中根据各种注解解析出来的类，在这个时候都会被初始化。
+				实例化的过程各种BeanPostProcessor开始起作用。
+				这个方法是用来实例化懒加载单例Bean的，也就是我们的Bean都是在这里被创建出来的（当然我这里说的
+				的是绝大部分情况是这样的）
+				*/
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
@@ -944,12 +966,15 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		clearResourceCaches();
 
 		// Initialize lifecycle processor for this context.
+		// 1.为此上下文初始化生命周期处理器
 		initLifecycleProcessor();
 
 		// Propagate refresh to lifecycle processor first.
+		// 2.首先将刷新完毕事件传播到生命周期处理器（触发isAutoStartup方法返回true的SmartLifecycle的start方法）
 		getLifecycleProcessor().onRefresh();
 
 		// Publish the final event.
+		// 3.推送上下文刷新完毕事件到相应的监听器
 		publishEvent(new ContextRefreshedEvent(this));
 
 		// Participate in LiveBeansView MBean, if active.

@@ -273,10 +273,14 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 	protected Set<BeanDefinitionHolder> doScan(String... basePackages) {
 		// 这是Spring中的Assert，大家开发时也可以用
 		Assert.notEmpty(basePackages, "At least one base package must be specified");
+
 		Set<BeanDefinitionHolder> beanDefinitions = new LinkedHashSet<>();
+
+		// 循环处理basePackages
 		for (String basePackage : basePackages) {
 			// 扫描包路径得到BeanDefinition，得到的BeanDefinition是空的，还没有解析类上所定义的注解信息
 			Set<BeanDefinition> candidates = findCandidateComponents(basePackage);
+
 			for (BeanDefinition candidate : candidates) {
 				// 得到Scope的信息，并设置
 				ScopeMetadata scopeMetadata = this.scopeMetadataResolver.resolveScopeMetadata(candidate);
@@ -284,10 +288,15 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 				// 得到beanName
 				String beanName = this.beanNameGenerator.generateBeanName(candidate, this.registry);
 
+				// 由findCandidateComponents内部可知，这里的candidate是ScannedGenericBeanDefinition
+				// 而ScannedGenericBeanDefinition是AbstractBeanDefinition和AnnotatedBeanDefinition的之类
+				// 所以下面的两个if都会进入
 				if (candidate instanceof AbstractBeanDefinition) {
+					// 内部会设置默认值
 					postProcessBeanDefinition((AbstractBeanDefinition) candidate, beanName);
 				}
 				if (candidate instanceof AnnotatedBeanDefinition) {
+					// 如果是AnnotatedBeanDefinition，还会再设置一次值
 					AnnotationConfigUtils.processCommonDefinitionAnnotations((AnnotatedBeanDefinition) candidate);
 				}
 				if (checkCandidate(beanName, candidate)) {

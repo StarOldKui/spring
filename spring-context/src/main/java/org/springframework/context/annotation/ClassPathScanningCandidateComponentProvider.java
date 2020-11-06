@@ -311,11 +311,12 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	public Set<BeanDefinition> findCandidateComponents(String basePackage) {
 		// 扫描Component，最笨的方法就是扫描basePackage下的所有类，看是否有@Component注解
 		// Spring提供了一种支持更快速扫描的机制，就是编译时直接创建一个静态的
-
+		// spring支持component索引技术，需要引入一个组件，因为大部分情况不会引入这个组件
+		// 所以不会进入到这个if
 		if (this.componentsIndex != null && indexSupportsIncludeFilters()) {
 			return addCandidateComponentsFromIndex(this.componentsIndex, basePackage);
-		}
-		else {
+		} else {
+			// !!
 			return scanCandidateComponents(basePackage);
 		}
 	}
@@ -420,11 +421,16 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 		// 扫描类，得到BeanDefinition
 		Set<BeanDefinition> candidates = new LinkedHashSet<>();
 		try {
+			// 把传进来的类似命名空间形式的字符串转换成类似类文件地址的形式，然后在前面加上classpath*:
+			// 即：com.xx=>classpath*:com/xx/**/*.class
 			String packageSearchPath = ResourcePatternResolver.CLASSPATH_ALL_URL_PREFIX +
 					resolveBasePackage(basePackage) + '/' + this.resourcePattern;
+			//根据packageSearchPath，获得符合要求的文件
 			Resource[] resources = getResourcePatternResolver().getResources(packageSearchPath);
+
 			boolean traceEnabled = logger.isTraceEnabled();
 			boolean debugEnabled = logger.isDebugEnabled();
+
 			for (Resource resource : resources) {
 				if (traceEnabled) {
 					logger.trace("Scanning " + resource);
@@ -432,8 +438,11 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 				if (resource.isReadable()) {
 					try {
 						// MetadataReader包含了对应class的元信息以及注解元信息
+						// metadataReader 元数据读取器，解析resource，也可以理解为描述资源的数据结构
 						MetadataReader metadataReader = getMetadataReaderFactory().getMetadataReader(resource);
 						// 判断一个类是不是Component
+						// 在isCandidateComponent方法内部会真正执行匹配规则
+						// 注册配置类自身会被排除，不会进入到这个if
 						if (isCandidateComponent(metadataReader)) {
 							// 通过扫描@Component得到的BeanDefinition为ScannedGenericBeanDefinition
 							ScannedGenericBeanDefinition sbd = new ScannedGenericBeanDefinition(metadataReader);

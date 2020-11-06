@@ -263,7 +263,6 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			}
 			bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
 		}
-
 		else {
 			// Fail if we're already creating this bean instance:
 			// We're assumably within a circular reference.
@@ -329,12 +328,15 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					}
 				}
 
-
 				// 根据Scope去创建bean
 				// Create bean instance.
 				if (mbd.isSingleton()) {
 					// 获取单例bean，如果获取不到则创建一个bean，并且放入单例池中
 					// 第二次getSingleton，整个bean初始化过程都在里面
+					/*
+					getSingleton中的第二个参数类型是ObjectFactory<?>，是一个函数式接口，不会立刻执行，而是在
+					getSingleton方法中，调用ObjectFactory的getObject，才会执行createBean
+					*/
 					sharedInstance = getSingleton(beanName, () -> {
 						try {
 								return createBean(beanName, mbd, args);

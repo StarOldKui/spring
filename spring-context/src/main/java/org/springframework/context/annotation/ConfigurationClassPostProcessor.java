@@ -234,8 +234,10 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		}
 		this.registriesPostProcessed.add(registryId);
 
+		// !!
 		// 寻找配置类对应的BeanDefinition然后进行处理
 		// 比如开始扫描
+		// 主要是完成扫描，最终注册我们定义的Bean
 		processConfigBeanDefinitions(registry);
 	}
 
@@ -350,6 +352,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		Set<BeanDefinitionHolder> candidates = new LinkedHashSet<>(configCandidates);
 		Set<ConfigurationClass> alreadyParsed = new HashSet<>(configCandidates.size());
 		do {
+			// !!
 			// 解析
 			parser.parse(candidates);
 

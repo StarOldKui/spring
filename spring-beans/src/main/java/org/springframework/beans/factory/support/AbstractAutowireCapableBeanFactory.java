@@ -475,6 +475,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	//---------------------------------------------------------------------
 
 	/**
+	 * 此类核心方法，创建bean实例， 属性注入，后置处理器回调
+	 *
 	 * Central method of this class: creates a bean instance,
 	 * populates the bean instance, applies post-processors, etc.
 	 * @see #doCreateBean
@@ -523,12 +525,15 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		try {
+			// !!
 			// 创建bean
 			// 生成半成品（row）对象，执行构造方法，但无属性注入
 			Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+
 			if (logger.isTraceEnabled()) {
 				logger.trace("Finished creating instance of bean '" + beanName + "'");
 			}
+
 			return beanInstance;
 		}
 		catch (BeanCreationException | ImplicitlyAppearedSingletonException ex) {
@@ -543,6 +548,21 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	}
 
 	/**
+	 * Spring Bean的生命周期
+	 * 1. 实例化Bean对象，这个时候Bean的对象是非常低级的，基本不能够被我们使用，因为连最基本的属性都没有设置，可以理解为
+	 * 连Autowired注解都是没有解析的；
+	 * 2. 填充属性，当做完这一步，Bean对象基本是完整的了，可以理解为Autowired注解已经解析完毕，依赖注入完成了；
+	 * 3. 如果Bean实现了BeanNameAware接口，则调用setBeanName方法；
+	 * 4. 如果Bean实现了BeanClassLoaderAware接口，则调用setBeanClassLoader方法；
+	 * 5. 如果Bean实现了BeanFactoryAware接口，则调用setBeanFactory方法；
+	 * 6. 调用BeanPostProcessor的postProcessBeforeInitialization方法；
+	 * 7. 如果Bean实现了InitializingBean接口，调用afterPropertiesSet方法；
+	 * 8. 如果Bean定义了init-method方法，则调用Bean的init-method方法；
+	 * 9. 调用BeanPostProcessor的postProcessAfterInitialization方法；当进行到这一步，Bean已经被准备就绪了，一直停留在应用的
+	 * 上下文中，直到被销毁；
+	 * 10. 如果应用的上下文被销毁了，如果Bean实现了DisposableBean接口，则调用destroy方法，如果Bean定义了destory-method
+	 * 声明了销毁方法也会被调用
+	 *
 	 * Actually create the specified bean. Pre-creation processing has already happened
 	 * at this point, e.g. checking {@code postProcessBeforeInstantiation} callbacks.
 	 * <p>Differentiates between default bean instantiation, use of a
@@ -569,6 +589,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// 2、实例化
 		if (instanceWrapper == null) {
+			// !!
 			// 完成了对象创建
 			instanceWrapper = createBeanInstance(beanName, mbd, args);
 		}
@@ -628,6 +649,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// 对象已经暴露出去了
 		Object exposedObject = bean;
 		try {
+			// !!
 			// 大名鼎鼎的方法，完成自动注入
 			// 3、填充属性 @Autowired
 			populateBean(beanName, mbd, instanceWrapper);
